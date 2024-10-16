@@ -26,24 +26,25 @@ public class IpUtil {
 
     public static InetAddress getLocalHostExactAddress() {
         try {
-            InetAddress candidateAddress = null;
-
-            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-            while (networkInterfaces.hasMoreElements()) {
-                NetworkInterface iface = networkInterfaces.nextElement();
-                for (Enumeration<InetAddress> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
-                    InetAddress inetAddr = inetAddrs.nextElement();
-                    if (!inetAddr.isLoopbackAddress()) {
-                        if (inetAddr.isSiteLocalAddress()) {
-                            return inetAddr;
-                        }
-                        if (candidateAddress == null) {
-                            candidateAddress = inetAddr;
-                        }
-                    }
-                }
-            }
-            return candidateAddress == null ? InetAddress.getLocalHost() : candidateAddress;
+//            InetAddress candidateAddress = null;
+//
+//            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+//            while (networkInterfaces.hasMoreElements()) {
+//                NetworkInterface iface = networkInterfaces.nextElement();
+//                for (Enumeration<InetAddress> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
+//                    InetAddress inetAddr = inetAddrs.nextElement();
+//                    if (!inetAddr.isLoopbackAddress()) {
+//                        if (inetAddr.isSiteLocalAddress()) {
+//                            return inetAddr;
+//                        }
+//                        if (candidateAddress == null) {
+//                            candidateAddress = inetAddr;
+//                        }
+//                    }
+//                }
+//            }
+//            return candidateAddress == null ? InetAddress.getLocalHost() : candidateAddress;
+            return InetAddress.getLocalHost();
         } catch (Exception e) {
             e.printStackTrace();
         }

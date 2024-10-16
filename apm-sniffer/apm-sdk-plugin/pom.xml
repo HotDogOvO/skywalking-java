@@ -136,6 +136,7 @@
         <module>aerospike-plugin</module>
         <module>rocketMQ-client-java-5.x-plugin</module>
         <module>dayu-jmeter-plugin</module>
+        <module>oracle-10.x-plugin</module>
     </modules>
     <packaging>pom</packaging>
 
