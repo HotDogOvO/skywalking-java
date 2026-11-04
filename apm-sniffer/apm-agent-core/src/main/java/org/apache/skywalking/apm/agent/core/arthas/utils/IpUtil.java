@@ -18,37 +18,69 @@
 
 package org.apache.skywalking.apm.agent.core.arthas.utils;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 
 public class IpUtil {
 
+    private static volatile InetAddress cachedAddress;
+
     public static InetAddress getLocalHostExactAddress() {
-        try {
-//            InetAddress candidateAddress = null;
-//
-//            Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
-//            while (networkInterfaces.hasMoreElements()) {
-//                NetworkInterface iface = networkInterfaces.nextElement();
-//                for (Enumeration<InetAddress> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
-//                    InetAddress inetAddr = inetAddrs.nextElement();
-//                    if (!inetAddr.isLoopbackAddress()) {
-//                        if (inetAddr.isSiteLocalAddress()) {
-//                            return inetAddr;
-//                        }
-//                        if (candidateAddress == null) {
-//                            candidateAddress = inetAddr;
-//                        }
-//                    }
-//                }
-//            }
-//            return candidateAddress == null ? InetAddress.getLocalHost() : candidateAddress;
-            return InetAddress.getLocalHost();
-        } catch (Exception e) {
-            e.printStackTrace();
+        InetAddress cached = cachedAddress;
+        if (cached != null) {
+            return cached;
         }
-        return null;
+        synchronized (IpUtil.class) {
+            if (cachedAddress != null) {
+                return cachedAddress;
+            }
+            try {
+                InetAddress candidateAddress = null;
+                Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+                while (networkInterfaces.hasMoreElements()) {
+                    NetworkInterface iface = networkInterfaces.nextElement();
+                    if (isInvalidInterface(iface)) {
+                        continue;
+                    }
+                    for (Enumeration<InetAddress> inetAddrs = iface.getInetAddresses(); inetAddrs.hasMoreElements(); ) {
+                        InetAddress inetAddr = inetAddrs.nextElement();
+                        if (inetAddr instanceof Inet4Address && !inetAddr.isLoopbackAddress()) {
+                            if (inetAddr.isSiteLocalAddress()) {
+                                // 优先返回内网IPv4
+                                cachedAddress = inetAddr;
+                                return inetAddr;
+                            }
+                            if (candidateAddress == null) {
+                                candidateAddress = inetAddr;
+                            }
+                        }
+                    }
+                }
+                // 降级获取其余网卡的IPv4，兜底用hostname
+                InetAddress result = candidateAddress != null ? candidateAddress : InetAddress.getLocalHost();
+                cachedAddress = result;
+                return result;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    /**
+     * 排除无效或虚拟网卡
+     */
+    private static boolean isInvalidInterface(NetworkInterface iface) throws Exception {
+        if (!iface.isUp() || iface.isLoopback() || iface.isVirtual() || iface.isPointToPoint()) {
+            return true;
+        }
+        String name = iface.getName().toLowerCase();
+        return name.startsWith("utun") || name.startsWith("tun") || name.startsWith("tap")
+                || name.startsWith("bridge") || name.startsWith("vmnet") || name.startsWith("vmenet")
+                || name.startsWith("docker") || name.startsWith("veth") || name.startsWith("awdl")
+                || name.startsWith("llw") || name.startsWith("anpi");
     }
 
 }
